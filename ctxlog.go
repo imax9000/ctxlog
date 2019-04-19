@@ -14,6 +14,9 @@
 //          ctx := ctxlog.WithField(context.Background(), "request_id", genRequestID())
 //          doStuff(ctx)  // if doStuff uses ctxlog too, all entries will have "request_id"
 //          // ...
+//
+// Context key is nil pointer to `logrus.Entry`, so other packages can also
+// operate on stored entry.
 package ctxlog
 
 import (
@@ -22,12 +25,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type ctxkey struct{}
+var key *log.Entry
 
 // With returns `logrus.Entry` from `ctx`. If `ctx` doesn't have any entry yet,
 // it will return a new entry (by calling `logrus.NewEntry(logrus.StandardLogger())`).
 func With(ctx context.Context) *log.Entry {
-	e, ok := ctx.Value(ctxkey{}).(*log.Entry)
+	e, ok := ctx.Value(key).(*log.Entry)
 	if !ok {
 		return log.NewEntry(log.StandardLogger())
 	}
@@ -57,7 +60,7 @@ func Fields(ctx context.Context) log.Fields {
 // fresh entry.
 func Clear(ctx context.Context) context.Context {
 	// Using Set would set the value to nil of type *log.Entry instead of untyped nil.
-	return context.WithValue(ctx, ctxkey{}, nil)
+	return context.WithValue(ctx, key, nil)
 }
 
 // Set associates `logrus.Entry` with a context. Subsequent calls to `With` will
@@ -67,5 +70,5 @@ func Clear(ctx context.Context) context.Context {
 // this function in case you need to have some other aspects of stored
 // `logrus.Entry` changed.
 func Set(ctx context.Context, entry *log.Entry) context.Context {
-	return context.WithValue(ctx, ctxkey{}, entry)
+	return context.WithValue(ctx, key, entry)
 }
